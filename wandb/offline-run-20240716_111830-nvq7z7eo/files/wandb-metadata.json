@@ -1,0 +1,53 @@
+{
+    "os": "Windows-10-10.0.19041-SP0",
+    "python": "3.7.6",
+    "heartbeatAt": "2024-07-16T02:18:30.276714",
+    "startedAt": "2024-07-16T02:18:30.140587",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "c:\\DLforFinance\\DistilBert.py",
+    "codePathLocal": "DistilBert.py",
+    "codePath": "DistilBert.py",
+    "git": {
+        "remote": "https://github.com/kimdj0413/DLforFinance.git",
+        "commit": "42dbc737111e6ff8f914e102ccfd1183883bed3e"
+    },
+    "email": "ejuniya@naver.com",
+    "root": "C:/DLforFinance",
+    "host": "DESKTOP-BM3UN8A",
+    "username": "G-10",
+    "executable": "c:\\Users\\G-10\\miniconda3\\envs\\trans\\python.exe",
+    "cpu_count": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq": {
+        "current": 3700.0,
+        "min": 0.0,
+        "max": 3700.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3700.0,
+            "min": 0.0,
+            "max": 3700.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 221.05526733398438,
+            "used": 165.85876083374023
+        }
+    },
+    "gpu": "NVIDIA GeForce GTX 1660 SUPER",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce GTX 1660 SUPER",
+            "memory_total": 6442450944
+        }
+    ],
+    "memory": {
+        "total": 31.908226013183594
+    }
+}

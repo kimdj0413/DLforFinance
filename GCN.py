@@ -5,9 +5,9 @@ from torch_geometric.data import Data
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from torch.nn import BatchNorm1d
-from torch_geometric.nn import GATConv
+from sklearn.metrics import confusion_matrix, classification_report
 print(f'GPU available : {torch.cuda.is_available()}')
-"""
+
 # 데이터 로드
 df = pd.read_csv('C:/webimagecrawling/ready.csv')
 
@@ -16,7 +16,7 @@ x = torch.tensor(df.iloc[:, 1:-1].values, dtype=torch.float)
 
 # 엣지 리스트 (Edge list)
 edge_index = []
-num_rows = len(df)``    
+num_rows = len(df)
 for i in range(num_rows - 1):
     edge_index.append([i, i + 1])
     edge_index.append([i + 1, i])
@@ -27,7 +27,7 @@ edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
 y = torch.tensor(df['Column49'].values, dtype=torch.long)
 
 # 그래프 데이터 객체
-graph_data = Data(x=x, edge_index=edge_index, y=y)
+# graph_data = Data(x=x, edge_index=edge_index, y=y)
 
 # 데이터셋 분리
 train_indices, val_indices = train_test_split(range(num_rows), test_size=0.2, random_state=42)
@@ -52,8 +52,12 @@ class GCN(torch.nn.Module):
         self.bn3 = BatchNorm1d(64)
         self.conv4 = GCNConv(64, 128)
         self.bn4 = BatchNorm1d(128)
-        self.conv5 = GCNConv(128, num_classes)
-        # self.dropout = torch.nn.Dropout(p=0.5)
+        self.conv5 = GCNConv(128, 256)
+        self.bn5 = BatchNorm1d(256)
+        self.conv6 = GCNConv(256, 512)
+        self.bn6 = BatchNorm1d(512)
+        self.conv7 = GCNConv(512, num_classes)
+        self.dropout = torch.nn.Dropout(p=0.5)
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
@@ -71,6 +75,7 @@ class GCN(torch.nn.Module):
         x = self.conv3(x, edge_index)
         x = self.bn3(x)
         x = F.relu(x)
+        x = self.dropout(x)
         
         x = self.conv4(x, edge_index)
         x = self.bn4(x)
@@ -78,21 +83,18 @@ class GCN(torch.nn.Module):
         x = self.dropout(x)
         
         x = self.conv5(x, edge_index)
+        x = self.bn5(x)
+        x = F.relu(x)
+        x = self.dropout(x)
+        
+        x = self.conv6(x, edge_index)
+        x = self.bn6(x)
+        x = F.relu(x)
+        x = self.dropout(x)
+        
+        x = self.conv7(x, edge_index)
 
         return F.log_softmax(x, dim=1)
-
-# class GCN(torch.nn.Module):
-#     def __init__(self, num_node_features, num_classes):
-#         super(GCN, self).__init__()
-#         self.conv1 = GCNConv(num_node_features, 16)
-#         self.conv2 = GCNConv(16, num_classes)
-
-#     def forward(self, data):
-#         x, edge_index = data.x, data.edge_index
-#         x = self.conv1(x, edge_index)
-#         x = F.relu(x)
-#         x = self.conv2(x, edge_index)
-#         return F.log_softmax(x, dim=1)
 
 # 모델 초기화
 model = GCN(num_node_features=x.size(1), num_classes=len(y.unique()))
@@ -105,11 +107,11 @@ model = model.to(device)
 train_data = train_data.to(device)
 
 # 옵티마이저 정의
-optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)  #   optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-3)  # 학습률&정규화 조정
+optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)  #   optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-3)  # 학습률&정규화 조정 (model.parameters(), lr=0.01, weight_decay=5e-4)
 
 
 # 조기 종료 설정
-early_stopping_patience = 10    # *10
+early_stopping_patience = 100    # *10
 early_stopping_counter = 0
 best_acc = 0.0
 
@@ -121,7 +123,7 @@ def accuracy(pred, labels):
 
 # 모델 훈련 및 평가
 model.train()
-for epoch in range(550):
+for epoch in range(10000):
     optimizer.zero_grad()
     out = model(train_data)
     loss = F.nll_loss(out[train_data.train_mask], train_data.y[train_data.train_mask])
@@ -145,6 +147,7 @@ for epoch in range(550):
         if val_acc > best_acc:
             best_acc = val_acc
             torch.save(model.state_dict(), 'gcn.pth')
+            early_stopping_counter = 0
             print(f'New best model saved with val accuracy: {best_acc:.4f}')
         else:
             early_stopping_counter += 1
@@ -159,6 +162,17 @@ with torch.no_grad():
     final_out = model(train_data)
     final_loss = F.nll_loss(final_out[train_data.val_mask], train_data.y[train_data.val_mask])
     final_acc = accuracy(final_out[train_data.val_mask], train_data.y[train_data.val_mask])
+    val_out = model(train_data)
+    val_pred = val_out[train_data.val_mask].max(dim=1)[1].cpu().numpy()
+    val_true = train_data.y[train_data.val_mask].cpu().numpy()
+
+conf_matrix = confusion_matrix(val_true, val_pred)
+class_report = classification_report(val_true, val_pred)
+
+print("Confusion Matrix:")
+print(conf_matrix)
+
+print("\nClassification Report:")
+print(class_report)
 
 print(f'Final Eval Loss: {final_loss.item():.4f}, Final Eval Accuracy: {final_acc:.4f}')
-"""

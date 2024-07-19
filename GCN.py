@@ -9,7 +9,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 print(f'GPU available : {torch.cuda.is_available()}')
 
 # 데이터 로드
-df = pd.read_csv('C:/webimagecrawling/ready.csv')
+df = pd.read_csv('C:/webimagecrawling/ready4.csv')
 
 # 노드 특징 행렬 (Node feature matrix)
 x = torch.tensor(df.iloc[:, 1:-1].values, dtype=torch.float)

@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from torch.nn import BatchNorm1d
 from sklearn.metrics import confusion_matrix, classification_report
+from torch.optim.lr_scheduler import StepLR
+
 print(f'GPU available : {torch.cuda.is_available()}')
 
 # 데이터 로드
@@ -64,32 +66,32 @@ class GCN(torch.nn.Module):
 
         x = self.conv1(x, edge_index)
         x = self.bn1(x)
-        x = F.relu(x)
+        x = F.gelu(x)
         # x = self.dropout(x)
 
         x = self.conv2(x, edge_index)
         x = self.bn2(x)
-        x = F.relu(x)
+        x = F.gelu(x)
         # x = self.dropout(x)
 
         x = self.conv3(x, edge_index)
         x = self.bn3(x)
-        x = F.relu(x)
-        x = self.dropout(x)
+        x = F.gelu(x)
+        # x = self.dropout(x)
         
         x = self.conv4(x, edge_index)
         x = self.bn4(x)
-        x = F.relu(x)
-        x = self.dropout(x)
+        x = F.gelu(x)
+        # x = self.dropout(x)
         
         x = self.conv5(x, edge_index)
         x = self.bn5(x)
-        x = F.relu(x)
+        x = F.gelu(x)
         x = self.dropout(x)
         
         x = self.conv6(x, edge_index)
         x = self.bn6(x)
-        x = F.relu(x)
+        x = F.gelu(x)
         x = self.dropout(x)
         
         x = self.conv7(x, edge_index)
@@ -108,7 +110,7 @@ train_data = train_data.to(device)
 
 # 옵티마이저 정의
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)  #   optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-3)  # 학습률&정규화 조정 (model.parameters(), lr=0.01, weight_decay=5e-4)
-
+scheduler = StepLR(optimizer, step_size=1000, gamma=0.9)
 
 # 조기 종료 설정
 early_stopping_patience = 100    # *10
@@ -129,6 +131,7 @@ for epoch in range(10000):
     loss = F.nll_loss(out[train_data.train_mask], train_data.y[train_data.train_mask])
     loss.backward()
     optimizer.step()
+    scheduler.step()
 
     # 평가 모드로 전환하여 테스트 셋에서의 성능을 평가
     model.eval()
@@ -142,15 +145,16 @@ for epoch in range(10000):
 
     if epoch % 10 == 0:
         train_acc = accuracy(out[train_data.train_mask], train_data.y[train_data.train_mask])
-        print(f'Epoch {epoch}, Loss: {loss.item():.4f}, Train Accuracy: {train_acc:.4f}     Val Loss: {val_loss.item():.4f}, Val Accuracy: {val_acc:.4f}')
-    
-        if val_acc > best_acc:
-            best_acc = val_acc
-            torch.save(model.state_dict(), 'gcn.pth')
-            early_stopping_counter = 0
-            print(f'New best model saved with val accuracy: {best_acc:.4f}')
-        else:
-            early_stopping_counter += 1
+        current_lr = scheduler.get_last_lr()[0]
+        print(f'Epoch {epoch}, Loss: {loss.item():.4f}, Train Accuracy: {train_acc:.4f}     Val Loss: {val_loss.item():.4f}, Val Accuracy: {val_acc:.4f}    Lr : {current_lr:.6f}')
+        if epoch > 500:
+            if val_acc > best_acc:
+                best_acc = val_acc
+                torch.save(model.state_dict(), 'gcn.pth')
+                early_stopping_counter = 0
+                print(f'New best model saved with val accuracy: {best_acc:.4f}')
+            else:
+                early_stopping_counter += 1
     if early_stopping_counter >= early_stopping_patience:
         print(f'Early stopping at epoch {epoch}')
         break

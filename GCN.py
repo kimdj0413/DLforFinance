@@ -11,10 +11,10 @@ from torch.optim.lr_scheduler import StepLR
 print(f'GPU available : {torch.cuda.is_available()}')
 
 # 데이터 로드
-df = pd.read_csv('C:/webimagecrawling/ready4.csv')
+df = pd.read_csv('C:/webimagecrawling/allMillionVector.csv')
 
 # 노드 특징 행렬 (Node feature matrix)
-x = torch.tensor(df.iloc[:, 1:-1].values, dtype=torch.float)
+x = torch.tensor(df.iloc[:,:-1].values, dtype=torch.float)
 
 # 엣지 리스트 (Edge list)
 edge_index = []
@@ -26,7 +26,7 @@ for i in range(num_rows - 1):
 edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
 
 # 레이블
-y = torch.tensor(df['Column49'].values, dtype=torch.long)
+y = torch.tensor(df['col45'].values, dtype=torch.long)
 
 # 그래프 데이터 객체
 # graph_data = Data(x=x, edge_index=edge_index, y=y)

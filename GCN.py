@@ -11,10 +11,12 @@ from torch.optim.lr_scheduler import StepLR
 print(f'GPU available : {torch.cuda.is_available()}')
 
 # 데이터 로드
-df = pd.read_csv('C:/webimagecrawling/allMillionVector.csv')
-
+df = pd.read_csv('C:/webimagecrawling/split/split.csv')
+df = df.iloc[:,2:]
+df = df.astype('float32')
+print(df)
 # 노드 특징 행렬 (Node feature matrix)
-x = torch.tensor(df.iloc[:,:-1].values, dtype=torch.float)
+x = torch.tensor(df.iloc[:,1:-1].values, dtype=torch.float)
 
 # 엣지 리스트 (Edge list)
 edge_index = []
@@ -52,13 +54,13 @@ class GCN(torch.nn.Module):
         self.bn2 = BatchNorm1d(32)
         self.conv3 = GCNConv(32, 64)
         self.bn3 = BatchNorm1d(64)
-        self.conv4 = GCNConv(64, 128)
-        self.bn4 = BatchNorm1d(128)
-        self.conv5 = GCNConv(128, 256)
-        self.bn5 = BatchNorm1d(256)
-        self.conv6 = GCNConv(256, 512)
-        self.bn6 = BatchNorm1d(512)
-        self.conv7 = GCNConv(512, num_classes)
+        self.conv4 = GCNConv(64, num_classes)
+        # self.bn4 = BatchNorm1d(128)
+        # self.conv5 = GCNConv(128, num_classes)
+        # self.bn5 = BatchNorm1d(256)
+        # self.conv6 = GCNConv(256, num_classes)
+        # self.bn6 = BatchNorm1d(512)
+        # self.conv7 = GCNConv(512, num_classes)
         self.dropout = torch.nn.Dropout(p=0.5)
 
     def forward(self, data):
@@ -77,24 +79,24 @@ class GCN(torch.nn.Module):
         x = self.conv3(x, edge_index)
         x = self.bn3(x)
         x = F.gelu(x)
-        # x = self.dropout(x)
+        x = self.dropout(x)
         
         x = self.conv4(x, edge_index)
-        x = self.bn4(x)
-        x = F.gelu(x)
+        # x = self.bn4(x)
+        # x = F.gelu(x)
         # x = self.dropout(x)
         
-        x = self.conv5(x, edge_index)
-        x = self.bn5(x)
-        x = F.gelu(x)
-        x = self.dropout(x)
+        # x = self.conv5(x, edge_index)
+        # x = self.bn5(x)
+        # x = F.gelu(x)
+        # x = self.dropout(x)
         
-        x = self.conv6(x, edge_index)
-        x = self.bn6(x)
-        x = F.gelu(x)
-        x = self.dropout(x)
+        # x = self.conv6(x, edge_index)
+        # x = self.bn6(x)
+        # x = F.gelu(x)
+        # x = self.dropout(x)
         
-        x = self.conv7(x, edge_index)
+        # x = self.conv7(x, edge_index)
 
         return F.log_softmax(x, dim=1)
 

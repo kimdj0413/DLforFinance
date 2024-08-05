@@ -1,60 +1,62 @@
-import pandas as pd
-import numpy as np
-from sklearn.preprocessing import MinMaxScaler
+import tensorflow as tf
+from tensorflow.keras import layers, models
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv1D, MaxPooling1D, Flatten, Dense
-from tensorflow.keras.utils import to_categorical
-from sklearn.metrics import accuracy_score
+import numpy as np
+import os
 
-# 데이터 불러오기
-df = pd.read_csv('../MLforFinance/ready.csv')
+# 데이터 전처리 및 로드
+data_dir = 'D:\\images'
 
-# 데이터 전처리
-df = df.iloc[:,1:]
-X = df.drop('Column49', axis=1)
-y = df['Column49']
+# 이미지와 라벨을 저장할 리스트
+images = []
+labels = []
 
-# 스케일링 적용
-scaler = MinMaxScaler()
-X_scaled = scaler.fit_transform(X)
+# 데이터셋 로드
+for label in os.listdir(data_dir):
+    folder_path = os.path.join(data_dir, label)
+    if os.path.isdir(folder_path):
+        for img_file in os.listdir(folder_path):
+            img_path = os.path.join(folder_path, img_file)
+            img = tf.keras.preprocessing.image.load_img(img_path, target_size=(128, 128))
+            img_array = tf.keras.preprocessing.image.img_to_array(img)
+            images.append(img_array)
+            labels.append(int(label))
 
-# 시계열 데이터를 위해 3D 형태로 변환
-def create_sequences(X, y, time_steps=1):
-    Xs, ys = [], []
-    for i in range(len(X) - time_steps):
-        Xs.append(X[i:(i + time_steps)])
-        ys.append(y[i + time_steps])
-    return np.array(Xs), np.array(ys)
+# numpy 배열로 변환
+images = np.array(images)
+labels = np.array(labels)
 
-time_steps = 10  # 시퀀스 길이
-X_seq, y_seq = create_sequences(X_scaled, y, time_steps)
+# Train/Test 분리
+X_train, X_test, y_train, y_test = train_test_split(images, labels, test_size=0.2, stratify=labels)
 
-# 학습 데이터와 테스트 데이터 분할
-X_train, X_test, y_train, y_test = train_test_split(X_seq, y_seq, test_size=0.2, random_state=42)
+# 클래스 비율 맞추기 위한 샘플링
+class_counts = np.bincount(y_train)
+class_weights = {0: class_counts[1] / class_counts[0], 1: class_counts[0] / class_counts[1]}
 
-# 레이블을 원-핫 인코딩
-y_train_cat = to_categorical(y_train, num_classes=3)
-y_test_cat = to_categorical(y_test, num_classes=3)
+# 데이터셋 생성
+train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).shuffle(buffer_size=1024).batch(32)
+test_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(32)
 
-# CNN 모델 구성
-model = Sequential()
-model.add(Conv1D(filters=64, kernel_size=2, activation='relu', input_shape=(time_steps, X_train.shape[2])))
-model.add(MaxPooling1D(pool_size=2))
-model.add(Flatten())
-model.add(Dense(50, activation='relu'))
-model.add(Dense(3, activation='softmax'))  # 출력층에서 클래스 수만큼 노드 생성
+# CNN 모델 정의
+model = models.Sequential([
+    layers.Conv2D(16, (3, 3), activation='relu', input_shape=(128, 128, 3)),
+    layers.MaxPooling2D(pool_size=(2, 2)),
+    layers.Conv2D(32, (3, 3), activation='relu'),
+    layers.MaxPooling2D(pool_size=(2, 2)),
+    layers.Flatten(),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(2, activation='softmax')  # 이진 분류를 위해 softmax 사용
+])
 
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+# 모델 컴파일
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
 
 # 모델 학습
-model.fit(X_train, y_train_cat, epochs=3, batch_size=32, validation_split=0.2)
+num_epochs = 10
+history = model.fit(train_dataset, epochs=num_epochs, validation_data=test_dataset, class_weight=class_weights)
 
-# 예측
-y_pred_cat = model.predict(X_test)
-y_pred = np.argmax(y_pred_cat, axis=1)
-
-# 성능 평가
-accuracy = accuracy_score(y_test, y_pred)
-
-print(f'Accuracy: {accuracy:.4f}')
+# 최종 테스트 결과
+test_loss, test_accuracy = model.evaluate(test_dataset)
+print(f'최종 테스트 손실: {test_loss:.4f}, 최종 테스트 정확도: {test_accuracy:.2f}%')

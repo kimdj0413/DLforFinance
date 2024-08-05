@@ -11,12 +11,12 @@ from torch.optim.lr_scheduler import StepLR
 print(f'GPU available : {torch.cuda.is_available()}')
 
 # 데이터 로드
-df = pd.read_csv('C:/webimagecrawling/split/split.csv')
-df = df.iloc[:,2:]
-df = df.astype('float32')
+df = pd.read_csv('StockVector1.csv')
+# df = df.iloc[:,2:]
+# df = df.astype('float16')
 print(df)
 # 노드 특징 행렬 (Node feature matrix)
-x = torch.tensor(df.iloc[:,1:-1].values, dtype=torch.float)
+x = torch.tensor(df.iloc[:,:-1].values, dtype=torch.float)
 
 # 엣지 리스트 (Edge list)
 edge_index = []
@@ -111,7 +111,7 @@ model = model.to(device)
 train_data = train_data.to(device)
 
 # 옵티마이저 정의
-optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)  #   optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-3)  # 학습률&정규화 조정 (model.parameters(), lr=0.01, weight_decay=5e-4)
+optimizer = optim.Adam(model.parameters(), lr=0.1, weight_decay=5e-4)  #   optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-3)  # 학습률&정규화 조정 (model.parameters(), lr=0.01, weight_decay=5e-4)
 scheduler = StepLR(optimizer, step_size=1000, gamma=0.9)
 
 # 조기 종료 설정

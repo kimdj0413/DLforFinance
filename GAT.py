@@ -1,30 +1,45 @@
 import pandas as pd
+import numpy as np
 import torch
 from torch_geometric.data import Data
 import torch.nn.functional as F
 from torch_geometric.nn import GATConv
 from torch.nn import BatchNorm1d
+from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report
 print(f'GPU available : {torch.cuda.is_available()}')
 
 # 데이터 로드
-df = pd.read_csv('C:/webimagecrawling/ready.csv')
+df = pd.read_csv('StockVector.csv')
 
 # 노드 특징 행렬 (Node feature matrix)
-x = torch.tensor(df.iloc[:, 1:-1].values, dtype=torch.float)
+x = torch.tensor(df.iloc[:, :-1].values, dtype=torch.float)
 
-# 엣지 리스트 (Edge list)
+# K-최근접 이웃 설정
+k = 3  # 필요에 따라 조정
+nbrs = NearestNeighbors(n_neighbors=k).fit(x.numpy())
+distances, indices = nbrs.kneighbors(x.numpy())
+
+# 엣지 리스트 초기화
 edge_index = []
-num_rows = len(df)
-for i in range(num_rows - 1):
-    edge_index.append([i, i + 1])
-    edge_index.append([i + 1, i])
 
+# 엣지 리스트 생성
+for i in range(len(indices)):
+    for j in range(1, k):  # 첫 번째는 자기 자신이므로 제외
+        edge_index.append([i, indices[i][j]])
+
+# 엣지 리스트를 텐서로 변환
 edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
+num_rows = len(df)
+# for i in range(num_rows - 1):
+#     edge_index.append([i, i + 1])
+#     edge_index.append([i + 1, i])
+
+# edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
 
 # 레이블
-y = torch.tensor(df['Column49'].values, dtype=torch.long)
+y = torch.tensor(df['col45'].values, dtype=torch.long)
 
 # 그래프 데이터 객체
 # graph_data = Data(x=x, edge_index=edge_index, y=y)
@@ -69,13 +84,13 @@ class GAT(torch.nn.Module):
 
         x = self.conv1(x, edge_index)
         x = self.bn1(x)
-        x = F.elu(x)
+        x = F.gelu(x)
         # x = self.dropout(x)
 
         x = self.conv2(x, edge_index)
         x = self.bn2(x)
-        x = F.elu(x)
-        # x = self.dropout(x)
+        x = F.gelu(x)
+        x = self.dropout(x)
 
         x = self.conv3(x, edge_index)
 

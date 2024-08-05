@@ -1,2 +1,6 @@
 best_model.h5
 gcn.pth
+StockVector1.csv
+StockVector.csv
+StockVectorVal.csv
+googlenet_model.pth

@@ -6,7 +6,6 @@ from tensorflow.keras.applications import InceptionV3
 from tensorflow.keras import layers, models
 from tensorflow.keras.preprocessing import image
 
-# 사용 가능한 GPU 리스트 출력
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
     print("GPU 사용 가능:", gpus)
@@ -26,7 +25,7 @@ train_generator = train_datagen.flow_from_directory(
     train_dir,
     target_size=(224, 224),
     batch_size=32,
-    class_mode='binary'  # 이진 분류
+    class_mode='binary'
 )
 
 validation_generator = validation_datagen.flow_from_directory(
@@ -70,6 +69,6 @@ def predict_image(img_path):
     prediction = model.predict(img_array)
     return prediction
 
-result = predict_image('path/to/new/image.jpg')
+result = predict_image('D:/images/validation')
 print("Predicted class:", '1' if result[0][0] > 0.5 else '0')
 """

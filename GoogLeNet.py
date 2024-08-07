@@ -42,6 +42,7 @@ base_model = InceptionV3(weights='imagenet', include_top=False, input_shape=(224
 model = models.Sequential()
 model.add(base_model)
 model.add(layers.GlobalAveragePooling2D())
+model.add(layers.Dropout(0.5))
 model.add(layers.Dense(1, activation='sigmoid'))
 
 # 모델 컴파일
